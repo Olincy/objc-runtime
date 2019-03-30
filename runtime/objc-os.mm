@@ -879,9 +879,10 @@ void _objc_init(void)
     initialized = true;
     
     // fixme defer initialization until an objc-using image is found?
+    // 读取环境变量
     environ_init();
-    tls_init();
-    static_init();
+    tls_init(); // 创建一个线程私有的全局变量，只有当前线程可以修改  其它线程可以读，但是不能修改其它线程的这个变量
+    static_init(); // C++静态h构造函数
     lock_init();
     exception_init();
 

@@ -6,11 +6,13 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "MyObject.h"
 
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
-        // insert code here...
-        NSLog(@"Hello, World!");
+        MyObject *my = [[MyObject alloc]init];
+        
+        NSLog(@"Hello, %@",my.name);
     }
     return 0;
 }
