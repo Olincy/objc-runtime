@@ -883,8 +883,8 @@ void _objc_init(void)
     environ_init();
     tls_init(); // 创建一个线程私有的全局变量，只有当前线程可以修改  其它线程可以读，但是不能修改其它线程的这个变量
     static_init(); // C++静态h构造函数
-    lock_init();
-    exception_init();
+    lock_init(); // 初始化锁，runtimelock / sellock / cacheUpdateLock / loadMethodLock
+    exception_init(); // 初始化runtime的异常处理系统
 
     _dyld_objc_notify_register(&map_images, load_images, unmap_image);
 }

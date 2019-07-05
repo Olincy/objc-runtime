@@ -1847,11 +1847,12 @@ static void reconcileInstanceVariables(Class cls, Class supercls, const class_ro
     } 
 }
 
-
+// 在编译期，类的相关方法，属性，协议会被添加到class_ro_t这个只读的结构体中。
+// 在运行期，类第一次被调用的时候，class_rw_t会被初始化，category中的内容也是在这个时候被添加进来的。
 /***********************************************************************
 * realizeClass
 * Performs first-time initialization on class cls, 
-* including allocating its read-write data.
+* including allocating its read-write data.  在这边创建 class_rw_t 结构体
 * Returns the real class structure for the class. 
 * Locking: runtimeLock must be write-locked by the caller
 **********************************************************************/
@@ -1871,6 +1872,7 @@ static Class realizeClass(Class cls)
 
     // fixme verify class is not in an un-dlopened part of the shared cache?
 
+    // 判断通过flag是否是第一次加载，如果是第一次加载，就创建一个rw结构体，并写到data()中
     ro = (const class_ro_t *)cls->data();
     if (ro->flags & RO_FUTURE) {
         // This was a future class. rw data is already allocated.
@@ -1885,7 +1887,7 @@ static Class realizeClass(Class cls)
         cls->setData(rw);
     }
 
-    isMeta = ro->flags & RO_META;
+    isMeta = ro->flags & RO_META; // 是否是meta class
 
     rw->version = isMeta ? 7 : 0;  // old runtime went up to 6
 
@@ -4883,6 +4885,7 @@ IMP lookUpImpOrForward(Class cls, SEL sel, id inst,
     runtimeLock.lock();
     checkIsKnownClass(cls);
 
+    // 如果类没有初始化的话 先初始化类
     if (!cls->isRealized()) {
         realizeClass(cls);
     }
