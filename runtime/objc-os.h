@@ -683,6 +683,8 @@ static inline tls_key_t tls_create(void (*dtor)(void*)) {
     pthread_key_create(&k, dtor); // // 创建一个线程私有的全局变量，只有当前线程可以修改  其它线程可以读，但是不能修改其它线程的这个变量
     return k;
 }
+
+// TLS：Thread Local Storage（TLS）线程局部存储，目的很简单，将一块内存作为某个线程专有的存储，以key-value的形式进行读写
 static inline void *tls_get(tls_key_t k) { 
     return pthread_getspecific(k); 
 }

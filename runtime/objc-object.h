@@ -729,9 +729,9 @@ objc_object::rootRetainCount()
 }
 
 
-// SUPPORT_NONPOINTER_ISA
+// SUPPORT_NONPOINTER_ISA  SUPPORT_NONPOINTER_ISA=1的话会在isa中存储一些信息
 #else
-// not SUPPORT_NONPOINTER_ISA
+// not SUPPORT_NONPOINTER_ISA SUPPORT_NONPOINTER_ISA=0的话isa就是个纯指针
 
 
 inline Class 
@@ -878,11 +878,11 @@ objc_object::retain()
 {
     assert(!isTaggedPointer());
 
-    if (fastpath(!ISA()->hasCustomRR())) {
+    if (fastpath(!ISA()->hasCustomRR())) { // 是否有自定义的retain，如果有，调用自定义的retain
         return sidetable_retain();
     }
 
-    return ((id(*)(objc_object *, SEL))objc_msgSend)(this, SEL_retain);
+    return ((id(*)(objc_object *, SEL))objc_msgSend)(this, SEL_retain); // 否则调用系统的retain
 }
 
 
@@ -913,7 +913,7 @@ objc_object::release()
 
 
 // Base release implementation, ignoring overrides.
-// Does not call -dealloc.
+// Does not call -dealloc. // 不调用-dealloc
 // Returns true if the object should now be deallocated.
 // This does not check isa.fast_rr; if there is an RR override then 
 // it was already called and it chose to call [super release].

@@ -110,9 +110,9 @@
 // Define SUPPORT_NONPOINTER_ISA=1 on any platform that may store something
 // in the isa field that is not a raw pointer.
 #if !SUPPORT_INDEXED_ISA  &&  !SUPPORT_PACKED_ISA
-#   define SUPPORT_NONPOINTER_ISA 0
+#   define SUPPORT_NONPOINTER_ISA 0 // 纯isa指针
 #else
-#   define SUPPORT_NONPOINTER_ISA 1
+#   define SUPPORT_NONPOINTER_ISA 1 // 在isa的位中存储一些信息
 #endif
 
 // Define SUPPORT_FIXUP=1 to repair calls sites for fixup dispatch.

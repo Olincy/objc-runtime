@@ -747,6 +747,7 @@ enum { CacheLineSize = 64 };
 template<typename T>
 class StripedMap {
 #if TARGET_OS_IPHONE && !TARGET_OS_SIMULATOR
+    // 如果是iPhone 且不是模拟器，初始化数组容量为8个
     enum { StripeCount = 8 };
 #else
     enum { StripeCount = 64 };
@@ -758,6 +759,8 @@ class StripedMap {
 
     PaddedT array[StripeCount];
 
+    // (p指针右移4位) 异或 （p指针右移9位） 之后进行取余操作 获得一个数组的index
+    // 异或：二进制位相同得0，不同得1
     static unsigned int indexForPointer(const void *p) {
         uintptr_t addr = reinterpret_cast<uintptr_t>(p);
         return ((addr >> 4) ^ (addr >> 9)) % StripeCount;

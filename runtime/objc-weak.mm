@@ -391,8 +391,8 @@ id
 weak_register_no_lock(weak_table_t *weak_table, id referent_id, 
                       id *referrer_id, bool crashIfDeallocating)
 {
-    objc_object *referent = (objc_object *)referent_id;
-    objc_object **referrer = (objc_object **)referrer_id;
+    objc_object *referent = (objc_object *)referent_id; //对象的地址
+    objc_object **referrer = (objc_object **)referrer_id; //指向对象的指针的地址
 
     if (!referent  ||  referent->isTaggedPointer()) return referent_id;
 
@@ -426,10 +426,11 @@ weak_register_no_lock(weak_table_t *weak_table, id referent_id,
 
     // now remember it and where it is being stored
     weak_entry_t *entry;
-    if ((entry = weak_entry_for_referent(weak_table, referent))) {
-        append_referrer(entry, referrer);
+    if ((entry = weak_entry_for_referent(weak_table, referent))) { // 根据对象的地址找到weak_entry
+        append_referrer(entry, referrer); // 向weak_entry_t 添加指向对象的指针的地址
     } 
     else {
+        // 初始化一个新的entry插入到weak_table
         weak_entry_t new_entry(referent, referrer);
         weak_grow_maybe(weak_table);
         weak_entry_insert(weak_table, &new_entry);

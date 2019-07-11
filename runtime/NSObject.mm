@@ -282,7 +282,7 @@ storeWeak(id *location, objc_object *newObj)
  retry:
     if (haveOld) {
         oldObj = *location;
-        oldTable = &SideTables()[oldObj];
+        oldTable = &SideTables()[oldObj]; // 如果有旧值，获得旧值的SideTable
     } else {
         oldTable = nil;
     }
@@ -302,6 +302,7 @@ storeWeak(id *location, objc_object *newObj)
     // Prevent a deadlock between the weak reference machinery
     // and the +initialize machinery by ensuring that no 
     // weakly-referenced object has an un-+initialized isa.
+    // 如果没有初始化类 调用+initialized，objc_class中data()->flag其中一个位标记了是否initialized
     if (haveNew  &&  newObj) {
         Class cls = newObj->getIsa();
         if (cls != previouslyInitializedClass  &&  
@@ -653,10 +654,10 @@ class AutoreleasePoolPage
     static size_t const COUNT = SIZE / sizeof(id);
 
     magic_t const magic;
-    id *next;
+    id *next; //指向下一个对象的地址
     pthread_t const thread;
-    AutoreleasePoolPage * const parent;
-    AutoreleasePoolPage *child;
+    AutoreleasePoolPage * const parent; // 双向链表链接
+    AutoreleasePoolPage *child; //s双向链表链接
     uint32_t const depth;
     uint32_t hiwat;
 
@@ -1024,7 +1025,7 @@ public:
             // Each autorelease pool starts on a new pool page.
             dest = autoreleaseNewPage(POOL_BOUNDARY);
         } else {
-            dest = autoreleaseFast(POOL_BOUNDARY);
+            dest = autoreleaseFast(POOL_BOUNDARY); // POOL_BOUNDARY: nil  作为边界哨兵对象，pop的时候从这个哨兵对象开始
         }
         assert(dest == EMPTY_POOL_PLACEHOLDER || *dest == POOL_BOUNDARY);
         return dest;
@@ -1105,10 +1106,10 @@ public:
         } 
         else if (page->child) {
             // hysteresis: keep one empty child if page is more than half full
-            if (page->lessThanHalfFull()) {
+            if (page->lessThanHalfFull()) { // 当前页空间剩余一半多，就删掉下一页空间
                 page->child->kill();
             }
-            else if (page->child->child) {
+            else if (page->child->child) { // 如果当前页空间剩余不到一半，（只）保留下一页
                 page->child->child->kill();
             }
         }
