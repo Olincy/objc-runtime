@@ -162,6 +162,7 @@ void SideTable::unlockTwo<DontHaveOld, DoHaveNew>
 // libc calls us before our C++ initializers run. We also don't want a global 
 // pointer to this struct because of the extra indirection.
 // Do it the hard way.
+// alignas是c++的对齐修饰符，表示该数组必须按照模板参数StripedMap<SideTable>的对齐方式进行对齐
 alignas(StripedMap<SideTable>) static uint8_t 
     SideTableBuf[sizeof(StripedMap<SideTable>)];
 
@@ -263,6 +264,8 @@ objc_storeStrong(id *location, id obj)
 enum CrashIfDeallocating {
     DontCrashIfDeallocating = false, DoCrashIfDeallocating = true
 };
+
+// 函数模板
 template <HaveOld haveOld, HaveNew haveNew,
           CrashIfDeallocating crashIfDeallocating>
 static id 
@@ -292,6 +295,7 @@ storeWeak(id *location, objc_object *newObj)
         newTable = nil;
     }
 
+    // 上锁
     SideTable::lockTwo<haveOld, haveNew>(oldTable, newTable);
 
     if (haveOld  &&  *location != oldObj) {

@@ -66,6 +66,7 @@ union isa_t {
     uintptr_t bits;
 #if defined(ISA_BITFIELD)
     struct {
+        // 位域存储 
         ISA_BITFIELD;  // defined in isa.h
     };
 #endif
@@ -754,6 +755,11 @@ class StripedMap {
 #endif
 
     struct PaddedT {
+        // alignas是c++的对齐修饰符, 指定对齐值
+        // 包含一个T类型的的成员变量value，并且value为 CacheLineSize 字节，
+        // Cache Line可以简单的理解为CPU Cache中的最小缓存单位。目前主流的CPU Cache的Cache Line大小都是64Bytes。
+        // 超过cacheline大小的数组，存取效率会受到影响
+        // 具体可以看这篇文章了解: http://cenalulu.github.io/linux/all-about-cpu-cache/
         T value alignas(CacheLineSize);
     };
 
