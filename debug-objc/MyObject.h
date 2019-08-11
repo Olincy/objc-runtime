@@ -12,6 +12,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface MyObject : NSObject
 
 @property (nonatomic) NSString *name;
+@property (weak, nonatomic) NSObject *aweakOBj;
 
 @end
 

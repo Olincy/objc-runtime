@@ -756,10 +756,10 @@ class StripedMap {
 
     struct PaddedT {
         // alignas是c++的对齐修饰符, 指定对齐值
-        // 包含一个T类型的的成员变量value，并且value为 CacheLineSize 字节，
+        // 包含一个T类型的的成员变量value，并且value为 CacheLineSize 字节对齐，
         // Cache Line可以简单的理解为CPU Cache中的最小缓存单位。目前主流的CPU Cache的Cache Line大小都是64Bytes。
-        // 超过cacheline大小的数组，存取效率会受到影响
-        // 具体可以看这篇文章了解: http://cenalulu.github.io/linux/all-about-cpu-cache/
+        // 和cacheline大小对齐，是一种优化效率的有效方法
+        // 具体可以参考这篇文章了解: http://cenalulu.github.io/linux/all-about-cpu-cache/
         T value alignas(CacheLineSize);
     };
 
