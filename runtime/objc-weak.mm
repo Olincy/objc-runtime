@@ -79,7 +79,7 @@ static void grow_refs_and_insert(weak_entry_t *entry,
     assert(entry->out_of_line());
 
     size_t old_size = TABLE_SIZE(entry);
-    size_t new_size = old_size ? old_size * 2 : 8;
+    size_t new_size = old_size ? old_size * 2 : 8; // 最开始先开辟8个元素的空间，之后每次翻倍
 
     size_t num_refs = entry->num_refs;
     weak_referrer_t *old_refs = entry->referrers;
@@ -111,6 +111,9 @@ static void grow_refs_and_insert(weak_entry_t *entry,
  */
 static void append_referrer(weak_entry_t *entry, objc_object **new_referrer)
 {
+    // out_of_line用于标记weak_entry_t结构内是否存放在一个内部小数组(大小为4)中,
+    // 如果没有out of line，先尝试往小数组中存
+    // 否则开辟新的数组
     if (! entry->out_of_line()) {
         // Try to insert inline.
         for (size_t i = 0; i < WEAK_INLINE_COUNT; i++) {
@@ -130,14 +133,14 @@ static void append_referrer(weak_entry_t *entry, objc_object **new_referrer)
         }
         entry->referrers = new_referrers;
         entry->num_refs = WEAK_INLINE_COUNT;
-        entry->out_of_line_ness = REFERRERS_OUT_OF_LINE;
+        entry->out_of_line_ness = REFERRERS_OUT_OF_LINE; // 标记为out_of_line
         entry->mask = WEAK_INLINE_COUNT-1;
         entry->max_hash_displacement = 0;
     }
 
     assert(entry->out_of_line());
 
-    if (entry->num_refs >= TABLE_SIZE(entry) * 3/4) {
+    if (entry->num_refs >= TABLE_SIZE(entry) * 3/4) { // 元素个数超过3/4后,开辟新的数组空间
         return grow_refs_and_insert(entry, new_referrer);
     }
     size_t begin = w_hash_pointer(new_referrer) & (entry->mask);
