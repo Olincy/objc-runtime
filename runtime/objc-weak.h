@@ -31,17 +31,23 @@ __BEGIN_DECLS
 
 /*
 The weak table is a hash table governed by a single spin lock.
+ weak table是一个由一个spin lock保护的哈希表
 An allocated blob of memory, most often an object, but under GC any such 
 allocation, may have its address stored in a __weak marked storage location 
 through use of compiler generated write-barriers or hand coded uses of the 
-register weak primitive. Associated with the registration can be a callback 
+register weak primitive.
+ alloc开辟出来的一小块内存块（通常是一个对象），在GC下，（由编译器自动生成写屏障（write-barriers）或由手写代码注册，）将这种对象存储在一个__weak标记的内存地址中
+ Associated with the registration can be a callback
 block for the case when one of the allocated chunks of memory is reclaimed. 
-The table is hashed on the address of the allocated memory.  When __weak 
+
+ The table is hashed on the address of the allocated memory.  When __weak
 marked memory changes its reference, we count on the fact that we can still 
 see its previous reference.
+ 该table由对象的内存地址做hash，当__weak标记的内存的引用被修改时，我们任然可以获知它之前的引用。
 
 So, in the hash table, indexed by the weakly referenced item, is a list of 
 all locations where this address is currently being stored.
+ 因此，在哈希表中（由弱引用项索引）是当前存储该地址的所有位置的列表。
  
 For ARC, we also keep track of whether an arbitrary object is being 
 deallocated by briefly placing it in the table just prior to invoking 
@@ -78,11 +84,11 @@ typedef DisguisedPtr<objc_object *> weak_referrer_t;
 #define REFERRERS_OUT_OF_LINE 2
 
 struct weak_entry_t {
-    DisguisedPtr<objc_object> referent;
+    DisguisedPtr<objc_object> referent; // 伪装后的对象的地址
     union {
         struct {
             weak_referrer_t *referrers;
-            uintptr_t        out_of_line_ness : 2;
+            uintptr_t        out_of_line_ness : 2; // 不管是64位系统还是32位系统，由于地址值的最低的两个位值一定是0b00，因此这两个位可以用于存储其他有用的信息，这边用来存储out-of-line的状态
             uintptr_t        num_refs : PTR_MINUS_2;
             uintptr_t        mask;
             uintptr_t        max_hash_displacement;
@@ -94,14 +100,15 @@ struct weak_entry_t {
     };
 
     bool out_of_line() {
-        return (out_of_line_ness == REFERRERS_OUT_OF_LINE);
+        return (out_of_line_ness == REFERRERS_OUT_OF_LINE); //out_of_line_ness == 0b10表示out-of-line状态
     }
 
     weak_entry_t& operator=(const weak_entry_t& other) {
         memcpy(this, &other, sizeof(other));
         return *this;
     }
-
+    
+    // 构造函数后加冒号是初始化表达式，这边表示调用了成员类referent的构造函数
     weak_entry_t(objc_object *newReferent, objc_object **newReferrer)
         : referent(newReferent)
     {

@@ -839,11 +839,12 @@ class StripedMap {
 // nil is disguised as itself so zero-filled memory works as expected, 
 // which means 0x80..00 is also disguised as itself but we don't care.
 // Note that weak_entry_t knows about this encoding.
+// 是对T指针的一个封装, 将实际地址值进行伪装是为了避免被“leaks”这样的工具检测
 template <typename T>
 class DisguisedPtr {
     uintptr_t value;
 
-    static uintptr_t disguise(T* ptr) {
+    static uintptr_t disguise(T* ptr) { // 无符号整数形式的地址值？
         return -(uintptr_t)ptr;
     }
 
