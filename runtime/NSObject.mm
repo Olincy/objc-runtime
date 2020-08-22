@@ -90,8 +90,8 @@ enum HaveOld { DontHaveOld = false, DoHaveOld = true };
 enum HaveNew { DontHaveNew = false, DoHaveNew = true };
 
 struct SideTable {
-    spinlock_t slock;
-    RefcountMap refcnts;
+    spinlock_t slock; // 自旋锁，当资源被占用则一直空转，不会休眠，效率高，但对CPU造成一定浪费
+    RefcountMap refcnts; // 当isa中引用计数溢出时才会用到这个
     weak_table_t weak_table;
 
     SideTable() {
@@ -114,7 +114,8 @@ struct SideTable {
     static void unlockTwo(SideTable *lock1, SideTable *lock2);
 };
 
-
+// 封装这个lockTow/unlockTow方法是用来保证对两个资源进行加锁、解锁的顺序，
+// 跟java中LockTow类锁算法想要解决死锁问题的
 template<>
 void SideTable::lockTwo<DoHaveOld, DoHaveNew>
     (SideTable *lock1, SideTable *lock2)

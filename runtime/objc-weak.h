@@ -79,23 +79,27 @@ typedef DisguisedPtr<objc_object *> weak_referrer_t;
 // out_of_line_ness field overlaps with the low two bits of inline_referrers[1].
 // inline_referrers[1] is a DisguisedPtr of a pointer-aligned address.
 // The low two bits of a pointer-aligned DisguisedPtr will always be 0b00
+// 不管是64位系统还是32位系统，由于地址值的最低的两个位值一定是0b00，因此这两个位可以用于存储其他有用的信息，这边用来存储out-of-line的状态
 // (disguised nil or 0x80..00) or 0b11 (any other address).
 // Therefore out_of_line_ness == 0b10 is used to mark the out-of-line state.
 #define REFERRERS_OUT_OF_LINE 2
 
 struct weak_entry_t {
-    DisguisedPtr<objc_object> referent; // 伪装后的对象的地址
+    // DisguisedPtr<T> 实际上是T* 的封装，可以完全等同于T* ，将T* 伪装一下是的避免被类似leak的内存检测工具识别。
+    DisguisedPtr<objc_object> referent;
     union {
         struct {
-            weak_referrer_t *referrers;
-            uintptr_t        out_of_line_ness : 2; // 不管是64位系统还是32位系统，由于地址值的最低的两个位值一定是0b00，因此这两个位可以用于存储其他有用的信息，这边用来存储out-of-line的状态
-            uintptr_t        num_refs : PTR_MINUS_2;
-            uintptr_t        mask;
-            uintptr_t        max_hash_displacement;
+            weak_referrer_t *referrers; // typedef DisguisedPtr<objc_object *> weak_referrer_t; // 64bit * 1 -2bit
+            uintptr_t        out_of_line_ness : 2; // 用于标记是否是out_of_line，0b10表示out_of_line
+            // 如果out_of_line的话，数据存放在referrers数组中，否则的话，存放在inline_referrers这个内部小数组(长度只有4)
+            uintptr_t        num_refs : PTR_MINUS_2;  // 62bit
+            uintptr_t        mask; // 64bit * 1
+            uintptr_t        max_hash_displacement; // 64bit * 1
         };
         struct {
             // out_of_line_ness field is low bits of inline_referrers[1]
-            weak_referrer_t  inline_referrers[WEAK_INLINE_COUNT];
+            // inline_referrers[1]的低两位表示out_of_line_ness
+            weak_referrer_t  inline_referrers[WEAK_INLINE_COUNT];// 64bit * 4
         };
     };
 
