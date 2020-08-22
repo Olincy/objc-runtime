@@ -86,14 +86,15 @@ typedef DisguisedPtr<objc_object *> weak_referrer_t;
 
 struct weak_entry_t {
     // DisguisedPtr<T> 实际上是T* 的封装，可以完全等同于T* ，将T* 伪装一下是的避免被类似leak的内存检测工具识别。
-    DisguisedPtr<objc_object> referent;
+    DisguisedPtr<objc_object> referent; // 被引用对象
     union {
+        // 当添加一个新的的weak引用者指针，会尝试先把引用者指针存储在inline数组里面，如果inline数组存满了，或再开辟4个地址的空间用于存储新的
         struct {
             weak_referrer_t *referrers; // typedef DisguisedPtr<objc_object *> weak_referrer_t; // 64bit * 1 -2bit
             uintptr_t        out_of_line_ness : 2; // 用于标记是否是out_of_line，0b10表示out_of_line
             // 如果out_of_line的话，数据存放在referrers数组中，否则的话，存放在inline_referrers这个内部小数组(长度只有4)
             uintptr_t        num_refs : PTR_MINUS_2;  // 62bit
-            uintptr_t        mask; // 64bit * 1
+            uintptr_t        mask; // 64bit * 1, mask=referrers数组的容量-1，每次开辟新的referrers数组，数组的容量都是从4->8->16...（每次*2）的方式增加,对应mask则0b111->0b1111->0b11111...（具体可以看：grow_refs_and_insert()和append_referrer()函数）
             uintptr_t        max_hash_displacement; // 64bit * 1
         };
         struct {

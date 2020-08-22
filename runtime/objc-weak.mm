@@ -89,7 +89,7 @@ static void grow_refs_and_insert(weak_entry_t *entry,
         calloc(TABLE_SIZE(entry), sizeof(weak_referrer_t));
     entry->num_refs = 0;
     entry->max_hash_displacement = 0;
-    
+    // 将原有的所有引用指针重新添加一遍，也是重新hash的过程
     for (size_t i = 0; i < old_size && num_refs > 0; i++) {
         if (old_refs[i] != nil) {
             append_referrer(entry, old_refs[i]);
@@ -111,9 +111,9 @@ static void grow_refs_and_insert(weak_entry_t *entry,
  */
 static void append_referrer(weak_entry_t *entry, objc_object **new_referrer)
 {
-    // out_of_line用于标记weak_entry_t结构内是否存放在一个内部小数组(大小为4)中,
-    // 如果没有out of line，先尝试往小数组中存
-    // 否则开辟新的数组
+    // out_of_line用于标记weak_entry_t结构内的一个inline数组(大小为4)是否已经存满,
+    // 如果没有out of line，先尝试往inline小数组中存
+    // 否则开辟新的数组（大小同样为4）
     if (! entry->out_of_line()) {
         // Try to insert inline.
         for (size_t i = 0; i < WEAK_INLINE_COUNT; i++) {
@@ -143,6 +143,10 @@ static void append_referrer(weak_entry_t *entry, objc_object **new_referrer)
     if (entry->num_refs >= TABLE_SIZE(entry) * 3/4) { // 元素个数超过3/4后,开辟新的数组空间
         return grow_refs_and_insert(entry, new_referrer);
     }
+    
+    // mask=referrers数组的容量-1，每次开辟新的referrers数组，数组的容量都是从4->8->16...（每次*2）的方式增加,对应mask则0b111->0b1111->0b11111...
+    // 这边是一个非常巧妙过程，先对新的引用对象地址做hash，得到的值与mask按位与取得一个索引值，
+    // 然后从该索引位置开始往后查找空位置，如果找到就将新的引用对象地址存放到该位置，既包含hash查找索引，又有解决冲突的逻辑
     size_t begin = w_hash_pointer(new_referrer) & (entry->mask);
     size_t index = begin;
     size_t hash_displacement = 0;
