@@ -85,7 +85,7 @@ typedef DisguisedPtr<objc_object *> weak_referrer_t;
 #define REFERRERS_OUT_OF_LINE 2
 
 struct weak_entry_t {
-    // DisguisedPtr<T> 实际上是T* 的封装，可以完全等同于T* ，将T* 伪装一下是的避免被类似leak的内存检测工具识别。
+    // DisguisedPtr<T> 实际上是T* 的封装，可以把它看成是T指针 ，将T* 伪装一下是的避免被类似leak的内存检测工具识别。
     DisguisedPtr<objc_object> referent; // 被引用对象
     union {
         // 当添加一个新的的weak引用者指针，会尝试先把引用者指针存储在inline数组里面，如果inline数组存满了，或再开辟4个地址的空间用于存储新的

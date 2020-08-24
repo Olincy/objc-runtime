@@ -405,15 +405,15 @@ weak_register_no_lock(weak_table_t *weak_table, id referent_id,
 
     // ensure that the referenced object is viable
     bool deallocating;
-    if (!referent->ISA()->hasCustomRR()) {
+    if (!referent->ISA()->hasCustomRR()) { // class or superclass 没有自定义 retain/release/autorelease/retainCount/_tryRetain/_isDeallocating/retainWeakReference/allowsWeakReference
         deallocating = referent->rootIsDeallocating();
     }
     else {
         BOOL (*allowsWeakReference)(objc_object *, SEL) = 
             (BOOL(*)(objc_object *, SEL))
             object_getMethodImplementation((id)referent, 
-                                           SEL_allowsWeakReference);
-        if ((IMP)allowsWeakReference == _objc_msgForward) {
+                                           SEL_allowsWeakReference); // object_getMethodImplementation如果没有获取到相应的方法实现地址，会返回_objc_msgForward，进入消息转发流程
+        if ((IMP)allowsWeakReference == _objc_msgForward) { // 表示没有找到自定义的SEL_allowsWeakReference方法实现
             return nil;
         }
         deallocating =
