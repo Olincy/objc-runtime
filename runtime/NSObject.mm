@@ -168,7 +168,7 @@ alignas(StripedMap<SideTable>) static uint8_t
     SideTableBuf[sizeof(StripedMap<SideTable>)];
 
 static void SideTableInit() {
-    new (SideTableBuf) StripedMap<SideTable>();
+    new (SideTableBuf) StripedMap<SideTable>(); // 初始化放有8个SideTable的StripedMap
 }
 
 static StripedMap<SideTable>& SideTables() {
@@ -286,7 +286,7 @@ storeWeak(id *location, objc_object *newObj)
  retry:
     if (haveOld) {
         oldObj = *location;
-        oldTable = &SideTables()[oldObj]; // 如果有旧值，获得旧值的SideTable
+        oldTable = &SideTables()[oldObj]; // 如果有旧值，获得旧值对应的SideTable
     } else {
         oldTable = nil;
     }
@@ -296,7 +296,7 @@ storeWeak(id *location, objc_object *newObj)
         newTable = nil;
     }
 
-    // 上锁
+    // 确保两个SideTable上锁顺序，避免死锁
     SideTable::lockTwo<haveOld, haveNew>(oldTable, newTable);
 
     if (haveOld  &&  *location != oldObj) {

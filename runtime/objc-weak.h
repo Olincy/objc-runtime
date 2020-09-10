@@ -78,7 +78,7 @@ typedef DisguisedPtr<objc_object *> weak_referrer_t;
 #define REFERRERS_OUT_OF_LINE 2
 
 struct weak_entry_t {
-    // DisguisedPtr<T> 实际上是T* 的封装，可以完全等同于T* ，将T* 伪装一下是的避免被类似leak的内存检测工具识别。
+    // DisguisedPtr<T> 实际上是T* 的封装，可以把它看做T* ，将T* 伪装一下是的避免被类似leak的内存检测工具识别。
     DisguisedPtr<objc_object> referent;
     union {
         struct {
@@ -87,12 +87,12 @@ struct weak_entry_t {
             // 如果out_of_line的话，数据存放在referrers数组中，否则的话，存放在inline_referrers这个内部小数组(长度只有4)
             uintptr_t        num_refs : PTR_MINUS_2;
             uintptr_t        mask;
-            uintptr_t        max_hash_displacement;
+            uintptr_t        max_hash_displacement;  // 64bit
         };
         struct {
             // out_of_line_ness field is low bits of inline_referrers[1]
             // inline_referrers[1]的低两位表示out_of_line_ness
-            weak_referrer_t  inline_referrers[WEAK_INLINE_COUNT];//
+            weak_referrer_t  inline_referrers[WEAK_INLINE_COUNT];// 64bit * 4
         };
     };
 

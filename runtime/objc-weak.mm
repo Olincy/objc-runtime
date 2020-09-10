@@ -216,9 +216,14 @@ static void weak_entry_insert(weak_table_t *weak_table, weak_entry_t *new_entry)
     weak_entry_t *weak_entries = weak_table->weak_entries;
     assert(weak_entries != nil);
 
+    // new_entry->referent 是对象的地址
+    // 将对象指针求hash后与mask按位与求得起始索引，mask的值为数组长度-1，这样求索引的值必然在数组的范围内
+    // 比如： 某个对象的地址求得的hash为0x6a9f2be7，当前数组长度为16，mask为15（0b1111）
+    // 则 0x6a9f2be7 & ob1111 = 7（0b0111），那么begin索引值为7
+    // 当在begin索引处没有找到，则index+1继续往后寻找，直到找到空位为止
     size_t begin = hash_pointer(new_entry->referent) & (weak_table->mask);
     size_t index = begin;
-    size_t hash_displacement = 0;
+    size_t hash_displacement = 0; // 用于记录hash冲突时往后寻找位移大小
     while (weak_entries[index].referent != nil) {
         index = (index+1) & weak_table->mask;
         if (index == begin) bad_weak_table(weak_entries);
@@ -228,7 +233,7 @@ static void weak_entry_insert(weak_table_t *weak_table, weak_entry_t *new_entry)
     weak_entries[index] = *new_entry;
     weak_table->num_entries++;
 
-    if (hash_displacement > weak_table->max_hash_displacement) {
+    if (hash_displacement > weak_table->max_hash_displacement) { // 记录最大位移数
         weak_table->max_hash_displacement = hash_displacement;
     }
 }
@@ -260,6 +265,7 @@ static void weak_resize(weak_table_t *weak_table, size_t new_size)
 }
 
 // Grow the given zone's table of weak references if it is full.
+// 判断是否需要扩容，扩容因子0.75
 static void weak_grow_maybe(weak_table_t *weak_table)
 {
     size_t old_size = TABLE_SIZE(weak_table);
@@ -317,13 +323,18 @@ weak_entry_for_referent(weak_table_t *weak_table, objc_object *referent)
 
     if (!weak_entries) return nil;
 
+    // 将对象指针求hash后与mask按位与求得起始索引，mask的值为数组长度-1，这样求索引的值必然在数组的范围内
+    // 比如： 某个对象的地址求得的hash为0x6a9f2be7，当前数组长度为16，mask为15（0b1111）
+    // 则 0x6a9f2be7 & ob1111 = 7（0b0111），那么begin索引值为7
+    // 当在begin索引处没有找到，则index+1继续往后寻找
     size_t begin = hash_pointer(referent) & weak_table->mask;
     size_t index = begin;
-    size_t hash_displacement = 0;
+    size_t hash_displacement = 0; // 表示hash冲突时的位移值
     while (weak_table->weak_entries[index].referent != referent) {
         index = (index+1) & weak_table->mask;
         if (index == begin) bad_weak_table(weak_table->weak_entries);
         hash_displacement++;
+        // max_hash_displacement是插入元素时所记录的最大位移值，hash_displacement超过最大位移值还没找到则说明不存在
         if (hash_displacement > weak_table->max_hash_displacement) {
             return nil;
         }
@@ -435,7 +446,7 @@ weak_register_no_lock(weak_table_t *weak_table, id referent_id,
     else {
         // 初始化一个新的entry插入到weak_table
         weak_entry_t new_entry(referent, referrer);
-        weak_grow_maybe(weak_table);
+        weak_grow_maybe(weak_table); // 判断是否需要扩容，扩容因子0.75
         weak_entry_insert(weak_table, &new_entry);
     }
 
