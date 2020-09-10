@@ -31,17 +31,23 @@ __BEGIN_DECLS
 
 /*
 The weak table is a hash table governed by a single spin lock.
+ weak table是一个由一个spin lock保护的哈希表
 An allocated blob of memory, most often an object, but under GC any such 
 allocation, may have its address stored in a __weak marked storage location 
 through use of compiler generated write-barriers or hand coded uses of the 
-register weak primitive. Associated with the registration can be a callback 
+register weak primitive.
+ alloc开辟出来的一小块内存块（通常是一个对象），在GC下，（由编译器自动生成写屏障（write-barriers）或由手写代码注册，）将这种对象存储在一个__weak标记的内存地址中
+ Associated with the registration can be a callback
 block for the case when one of the allocated chunks of memory is reclaimed. 
-The table is hashed on the address of the allocated memory.  When __weak 
+
+ The table is hashed on the address of the allocated memory.  When __weak
 marked memory changes its reference, we count on the fact that we can still 
 see its previous reference.
+ 该table由对象的内存地址做hash，当__weak标记的内存的引用被修改时，我们任然可以获知它之前的引用。
 
 So, in the hash table, indexed by the weakly referenced item, is a list of 
 all locations where this address is currently being stored.
+ 因此，在哈希表中（由弱引用项索引）是当前存储该地址的所有位置的列表。
  
 For ARC, we also keep track of whether an arbitrary object is being 
 deallocated by briefly placing it in the table just prior to invoking 
@@ -73,21 +79,26 @@ typedef DisguisedPtr<objc_object *> weak_referrer_t;
 // out_of_line_ness field overlaps with the low two bits of inline_referrers[1].
 // inline_referrers[1] is a DisguisedPtr of a pointer-aligned address.
 // The low two bits of a pointer-aligned DisguisedPtr will always be 0b00
+// 不管是64位系统还是32位系统，由于地址值的最低的两个位值一定是0b00，因此这两个位可以用于存储其他有用的信息，这边用来存储out-of-line的状态
 // (disguised nil or 0x80..00) or 0b11 (any other address).
 // Therefore out_of_line_ness == 0b10 is used to mark the out-of-line state.
 #define REFERRERS_OUT_OF_LINE 2
 
 struct weak_entry_t {
+
     // DisguisedPtr<T> 实际上是T* 的封装，可以把它看做T* ，将T* 伪装一下是的避免被类似leak的内存检测工具识别。
     DisguisedPtr<objc_object> referent;
     union {
+        // 当添加一个新的的weak引用者指针，会尝试先把引用者指针存储在inline数组里面，如果inline数组存满了，或再开辟4个地址的空间用于存储新的
         struct {
-            weak_referrer_t *referrers; // typedef DisguisedPtr<objc_object *> weak_referrer_t;
+            weak_referrer_t *referrers; // typedef DisguisedPtr<objc_object *> weak_referrer_t; // 64bit * 1 -2bit
             uintptr_t        out_of_line_ness : 2; // 用于标记是否是out_of_line，0b10表示out_of_line
             // 如果out_of_line的话，数据存放在referrers数组中，否则的话，存放在inline_referrers这个内部小数组(长度只有4)
-            uintptr_t        num_refs : PTR_MINUS_2;
-            uintptr_t        mask;
-            uintptr_t        max_hash_displacement;  // 64bit
+
+            uintptr_t        num_refs : PTR_MINUS_2;  // 62bit
+            uintptr_t        mask; // 64bit * 1, mask=referrers数组的容量-1，每次开辟新的referrers数组，数组的容量都是从4->8->16...（每次*2）的方式增加,对应mask则0b111->0b1111->0b11111...（具体可以看：grow_refs_and_insert()和append_referrer()函数）
+            uintptr_t        max_hash_displacement; // 64bit * 1
+
         };
         struct {
             // out_of_line_ness field is low bits of inline_referrers[1]
@@ -97,14 +108,15 @@ struct weak_entry_t {
     };
 
     bool out_of_line() {
-        return (out_of_line_ness == REFERRERS_OUT_OF_LINE);
+        return (out_of_line_ness == REFERRERS_OUT_OF_LINE); //out_of_line_ness == 0b10表示out-of-line状态
     }
 
     weak_entry_t& operator=(const weak_entry_t& other) {
         memcpy(this, &other, sizeof(other));
         return *this;
     }
-
+    
+    // 构造函数后加冒号是初始化表达式，这边表示调用了成员类referent的构造函数
     weak_entry_t(objc_object *newReferent, objc_object **newReferrer)
         : referent(newReferent)
     {
