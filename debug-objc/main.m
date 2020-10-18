@@ -40,16 +40,22 @@ int main(int argc, const char * argv[]) {
 //        NSLog(@"Hello, %@",wObj);
 ////        __weak MyObject *my = [MyObject new];
 ////        NSLog(@"Hello, %@",my);
-        MyObjectA *obja = [[MyObjectA alloc]init];
-        MyObjectB *objb = [[MyObjectB alloc]init];
-//        objb.objA = obja;
-//        NSObject *obj = objb.objA;
-        NSLog(@"A before:%0x",&obja);
-        NSLog(@"A after:%x",ptr_hash(&obja)&3);
-        
-        NSLog(@"B before:%0x",&objb);
-        NSLog(@"B after:%x",ptr_hash(&objb)&3);
-        NSLog(@"Hello, %@",objb);
+//        MyObjectA *obja = [[MyObjectA alloc]init];
+//        MyObjectB *objb = [[MyObjectB alloc]init];
+////        objb.objA = obja;
+////        NSObject *obj = objb.objA;
+//        NSLog(@"A before:%0x",&obja);
+//        NSLog(@"A after:%x",ptr_hash(&obja)&3);
+//
+//        NSLog(@"B before:%0x",&objb);
+//        NSLog(@"B after:%x",ptr_hash(&objb)&3);
+//        NSLog(@"Hello, %@",objb);
+        MyObject *myObj = [[MyObject alloc]init];
+        NSLog(@"对象地址： %p",myObj);
+        __weak MyObject *weakOjbRef = myObj;
+        NSLog(@"weak指针地址： %p",&weakOjbRef);
+        myObj = nil;
+        NSLog(@"Hello, %@",weakOjbRef);
     }
     return 0;
 }

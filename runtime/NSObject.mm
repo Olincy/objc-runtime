@@ -328,7 +328,7 @@ storeWeak(id *location, objc_object *newObj)
         }
     }
 
-    // Clean up old value, if any.
+    // Clean up old value, if any. 如果有指针有引用一个对象，需要先把该对象的引用关系去掉，否则，那个对象如果释放的时候，会清空其所有weak指针，这个时候会造成内存泄漏
     if (haveOld) {
         weak_unregister_no_lock(&oldTable->weak_table, oldObj, location);
     }
@@ -350,6 +350,7 @@ storeWeak(id *location, objc_object *newObj)
     }
     else {
         // No new value. The storage is not changed.
+        // 如果只是把weak指针置为nil，不需要其他处理
     }
     
     SideTable::unlockTwo<haveOld, haveNew>(oldTable, newTable);
